@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Search, Plus, Minus, ShoppingBag, X, CreditCard, Menu } from 'lucide-react';
-import { debounce } from 'lodash';
 
 interface Product {
   id: number;
@@ -118,30 +117,50 @@ const CartContent: React.FC<CartContentProps> = ({ cart, removeFromCart, updateQ
   </div>
 );
 
+// Custom debounce hook
+function useDebounce<T>(value: T, delay: number): T {
+  const [debouncedValue, setDebouncedValue] = useState<T>(value);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [value, delay]);
+
+  return debouncedValue;
+}
+
 export default function Home() {
-  const [cart, setCart] = useState<(Product & { quantity: number })[]>([]);
+  const [cart, setCart] = useState<CartItem[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [windowWidth, setWindowWidth] = useState(0);
 
+  // Use our custom debounce hook for search
+  const debouncedSearchQuery = useDebounce(searchQuery, 300);
+
   const filteredProducts = useMemo(() => {
     return mockProducts.filter(product => {
-      const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesSearch = product.name.toLowerCase().includes(debouncedSearchQuery.toLowerCase());
       const matchesCategory = selectedCategory === 'All' || product.category === selectedCategory;
       return matchesSearch && matchesCategory;
     });
-  }, [searchQuery, selectedCategory]);
+  }, [debouncedSearchQuery, selectedCategory]);
 
   const handleResize = useCallback(
-    debounce(() => {
+    () => {
       setWindowWidth(window.innerWidth);
       if (window.innerWidth >= 1024) {
         setIsCartOpen(false);
         setIsMobileMenuOpen(false);
       }
-    }, 250),
+    },
     []
   );
 
@@ -150,7 +169,6 @@ export default function Home() {
     window.addEventListener('resize', handleResize);
     return () => {
       window.removeEventListener('resize', handleResize);
-      handleResize.cancel();
     };
   }, [handleResize]);
 
