@@ -211,7 +211,7 @@ export default function Home() {
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
               </div>
-              <ScrollArea className="w-full" orientation="horizontal">
+              <ScrollArea className="w-full">
                 <div className="flex gap-2 pb-2">
                   {categories.map((category) => (
                     <button
@@ -249,7 +249,7 @@ export default function Home() {
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
               </div>
-              <ScrollArea className="w-full" orientation="horizontal">
+              <ScrollArea className="w-full">
                 <div className="flex gap-2 pb-2">
                   {categories.map((category) => (
                     <button
