@@ -16,6 +16,18 @@ interface Product {
   image: string;
 }
 
+interface CartItem extends Product {
+  quantity: number;
+}
+
+interface CartContentProps {
+  cart: CartItem[];
+  removeFromCart: (productId: number) => void;
+  updateQuantity: (productId: number, delta: number) => void;
+  totalAmount: number;
+  closeCart: () => void;
+}
+
 const mockProducts: Product[] = [
   {
     id: 1,
@@ -36,7 +48,7 @@ const mockProducts: Product[] = [
 
 const categories = ['All', 'Appetizers', 'Salads', 'Main Course', 'Desserts', 'Beverages'];
 
-const CartContent = ({ cart, removeFromCart, updateQuantity, totalAmount, closeCart }) => (
+const CartContent: React.FC<CartContentProps> = ({ cart, removeFromCart, updateQuantity, totalAmount, closeCart }) => (
   <div className="flex flex-col h-full">
     <div className="p-4 border-b flex justify-between items-center">
       <h2 className="text-lg font-semibold">Shopping Cart</h2>
