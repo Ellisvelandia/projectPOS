@@ -45,6 +45,7 @@
     "react-day-picker": "^9.3.2",
     "react-dom": "^18",
     "react-hook-form": "^7.51.0",
+    "swiper": "^11.1.15",
     "tailwind-merge": "^2.2.1",
     "tailwindcss-animate": "^1.0.7",
     "zod": "^3.22.4"
