@@ -9,6 +9,9 @@
 /coverage
 
 # next.js
+# Ignore modules and env
+next/**
+next-env.d.ts
 /.next/
 /out/
 
