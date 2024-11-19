@@ -1,10 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
+import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Search, Plus, Minus, ShoppingBag, X, CreditCard, Menu } from 'lucide-react';
+import { debounce } from 'lodash';
 
 interface Product {
   id: number;
@@ -34,6 +36,76 @@ const mockProducts: Product[] = [
 
 const categories = ['All', 'Appetizers', 'Salads', 'Main Course', 'Desserts', 'Beverages'];
 
+const CartContent = ({ cart, removeFromCart, updateQuantity, totalAmount, closeCart }) => (
+  <div className="flex flex-col h-full">
+    <div className="p-4 border-b flex justify-between items-center">
+      <h2 className="text-lg font-semibold">Shopping Cart</h2>
+      <Button variant="ghost" size="icon" onClick={closeCart}>
+        <X className="h-4 w-4" />
+      </Button>
+    </div>
+    <ScrollArea className="flex-1 p-4">
+      {cart.length === 0 ? (
+        <div className="text-center text-gray-500">Your cart is empty</div>
+      ) : (
+        <div className="space-y-4">
+          {cart.map((item) => (
+            <div key={item.id} className="flex items-center gap-4">
+              <div className="relative w-16 h-16">
+                <Image
+                  src={item.image}
+                  alt={item.name}
+                  fill
+                  className="object-cover rounded"
+                  loading="lazy"
+                />
+              </div>
+              <div className="flex-1">
+                <h3 className="font-medium">{item.name}</h3>
+                <p className="text-sm text-gray-500">${item.price.toFixed(2)}</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => updateQuantity(item.id, -1)}
+                  disabled={item.quantity <= 1}
+                >
+                  <Minus className="h-4 w-4" />
+                </Button>
+                <span className="w-8 text-center">{item.quantity}</span>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => updateQuantity(item.id, 1)}
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => removeFromCart(item.id)}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </ScrollArea>
+    <div className="p-4 border-t">
+      <div className="flex justify-between mb-4">
+        <span>Total:</span>
+        <span className="font-semibold">${totalAmount.toFixed(2)}</span>
+      </div>
+      <Button className="w-full" disabled={cart.length === 0}>
+        <CreditCard className="h-4 w-4 mr-2" /> Checkout
+      </Button>
+    </div>
+  </div>
+);
+
 export default function Home() {
   const [cart, setCart] = useState<(Product & { quantity: number })[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -42,28 +114,33 @@ export default function Home() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [windowWidth, setWindowWidth] = useState(0);
 
-  useEffect(() => {
-    // Initialize window width
-    setWindowWidth(window.innerWidth);
+  const filteredProducts = useMemo(() => {
+    return mockProducts.filter(product => {
+      const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesCategory = selectedCategory === 'All' || product.category === selectedCategory;
+      return matchesSearch && matchesCategory;
+    });
+  }, [searchQuery, selectedCategory]);
 
-    // Update window width when resizing
-    const handleResize = () => {
+  const handleResize = useCallback(
+    debounce(() => {
       setWindowWidth(window.innerWidth);
       if (window.innerWidth >= 1024) {
         setIsCartOpen(false);
         setIsMobileMenuOpen(false);
       }
-    };
+    }, 250),
+    []
+  );
 
+  useEffect(() => {
+    setWindowWidth(window.innerWidth);
     window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
-
-  const filteredProducts = mockProducts.filter(product => {
-    const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory = selectedCategory === 'All' || product.category === selectedCategory;
-    return matchesSearch && matchesCategory;
-  });
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      handleResize.cancel();
+    };
+  }, [handleResize]);
 
   const addToCart = (product: Product) => {
     setCart(prev => {
@@ -95,78 +172,6 @@ export default function Home() {
   };
 
   const totalAmount = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
-
-  const CartContent = () => (
-    <div className="flex flex-col h-full">
-      <div className="p-4 border-b flex justify-between items-center">
-        <h2 className="text-lg font-semibold">Current Order</h2>
-        {windowWidth < 1024 && (
-          <button onClick={() => setIsCartOpen(false)}>
-            <X className="w-6 h-6" />
-          </button>
-        )}
-      </div>
-      <ScrollArea className="flex-1 p-4">
-        {cart.length === 0 ? (
-          <div className="text-center text-gray-500 py-8">
-            Your cart is empty
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {cart.map((item) => (
-              <div key={item.id} className="flex items-center gap-4 bg-gray-50 p-3 rounded-lg">
-                <img
-                  src={item.image}
-                  alt={item.name}
-                  className="w-16 h-16 object-cover rounded"
-                />
-                <div className="flex-1 min-w-0">
-                  <h3 className="font-medium truncate">{item.name}</h3>
-                  <p className="text-sm text-gray-500">${item.price.toFixed(2)}</p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => updateQuantity(item.id, -1)}
-                    className="p-1.5 rounded-full hover:bg-gray-200 touch-manipulation"
-                  >
-                    <Minus className="w-4 h-4" />
-                  </button>
-                  <span className="w-8 text-center">{item.quantity}</span>
-                  <button
-                    onClick={() => updateQuantity(item.id, 1)}
-                    className="p-1.5 rounded-full hover:bg-gray-200 touch-manipulation"
-                  >
-                    <Plus className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => removeFromCart(item.id)}
-                    className="p-1.5 rounded-full hover:bg-red-100 text-red-600 touch-manipulation"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </ScrollArea>
-      <div className="p-4 border-t bg-white">
-        <div className="flex justify-between items-center mb-4">
-          <span className="font-medium">Total Amount:</span>
-          <span className="text-xl font-bold text-green-600">
-            ${totalAmount.toFixed(2)}
-          </span>
-        </div>
-        <Button 
-          className="w-full bg-green-600 hover:bg-green-700 text-white h-12 text-lg" 
-          disabled={cart.length === 0}
-        >
-          <CreditCard className="w-5 h-5 mr-2" />
-          Proceed to Payment
-        </Button>
-      </div>
-    </div>
-  );
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -276,11 +281,14 @@ export default function Home() {
                     key={product.id}
                     className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden touch-manipulation"
                   >
-                    <div className="aspect-[4/3] relative">
-                      <img
+                    <div className="relative aspect-square mb-2">
+                      <Image
                         src={product.image}
                         alt={product.name}
-                        className="w-full h-full object-cover"
+                        fill
+                        className="object-cover rounded-lg"
+                        loading="lazy"
+                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                       />
                     </div>
                     <div className="p-4">
@@ -309,14 +317,26 @@ export default function Home() {
             <div className="fixed inset-0 z-50 lg:hidden">
               <div className="absolute inset-0 bg-black bg-opacity-50" onClick={() => setIsCartOpen(false)} />
               <div className="absolute right-0 top-0 h-full w-full max-w-md bg-white shadow-xl flex flex-col">
-                <CartContent />
+                <CartContent
+                  cart={cart}
+                  removeFromCart={removeFromCart}
+                  updateQuantity={updateQuantity}
+                  totalAmount={totalAmount}
+                  closeCart={() => setIsCartOpen(false)}
+                />
               </div>
             </div>
           )}
 
           {/* Cart Sidebar - Desktop */}
           <div className="hidden lg:flex flex-col w-96 border-l bg-white">
-            <CartContent />
+            <CartContent
+              cart={cart}
+              removeFromCart={removeFromCart}
+              updateQuantity={updateQuantity}
+              totalAmount={totalAmount}
+              closeCart={() => setIsCartOpen(false)}
+            />
           </div>
         </div>
       </div>
