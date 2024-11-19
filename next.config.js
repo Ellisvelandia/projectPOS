@@ -4,10 +4,7 @@ const nextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
-  images: {
-    loader: "custom",
-    loaderFile: "./my-loader.ts",
-  },
+  images: { unoptimized: true },
 };
 
 module.exports = nextConfig;
